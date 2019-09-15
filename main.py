@@ -13,7 +13,7 @@ def settings(args):
     else:
         config.read(args.config_file)
 
-    if args.config_file is None or \
+    if args.config_file is not None or \
             args.c_key is not None and \
             args.cs_key is not None and \
             args.at_key is not None and \
@@ -97,7 +97,6 @@ def main():
     parser.add_argument('-utl', '--use_timeline', action='store_true',
                         help='get the timeline for a given screen name')
     args = parser.parse_args()
-    print(args)
 
     consumer_key, consumer_secret, access_token, access_token_secret, \
         text_followers_filename, text_timeline_filename, \
@@ -108,6 +107,8 @@ def main():
                              json_followers_filename, json_timeline_filename, database_path,
                              args.use_text, args.use_json, args.use_database,
                              args.use_timeline, args.use_followers)
+
+    twitter_app.search(args.query)
 
 
 if __name__ == '__main__':
