@@ -8,17 +8,18 @@ import time
 
 DEFAULT_CONFIG = 'config.ini'
 ctrl_c = False
-search_thread = None
+search_threads = []
 
-# used to always exit on a sleep so that no thread gets cut off
+
 def handel_ctrl_c(signal_received, frame):
+    # used to always exit on a sleep so that no thread gets cut off
     global ctrl_c
-    global search_thread
+    global search_threads
     ctrl_c = True
-    while search_thread is not None:
-        time.sleep(.5)
-        if not search_thread.is_alive():
-            search_thread = None
+    while not search_threads:
+        for search_thread in search_threads:
+            if not search_thread.is_alive():
+                search_threads.remove(search_thread)
     sys.exit(0)
 
 
@@ -128,7 +129,13 @@ def main():
                         help='Gather data from google results for every quantum of time')
     parser.add_argument('-q', '--quantum', type=int,
                         help='A quantum of time for gathering data')
+
+    parser.add_argument('-mq', '--multi_query', nargs='*',
+                        help='''flag used to grab many different keyword tweets along with the first query.
+                        Multi_query must be used with gather_data flag''')
+
     args = parser.parse_args()
+    print(args)
 
     consumer_key, consumer_secret, access_token, access_token_secret, \
         text_followers_filename, text_timeline_filename, \
@@ -146,14 +153,24 @@ def main():
                          args.use_timeline, args.use_followers)
 
     count = 0
+    q_list = []
+    if args.multi_query:
+        q_list = args.multi_query
+        q_list.append(args.query)
+    else:
+        q_list.append(args.query)
+
+    print(q_list)
 
     # Run the search
     if args.gather_data:
         while not ctrl_c:
-            global search_thread
-            search_thread = threading.Thread(target=search_thread_function,
-                                             args=(twitter, args.query), name='search_thread')
-            search_thread.start()
+            global search_threads
+            for query in q_list:
+                search_thread = threading.Thread(target=search_thread_function,
+                                                 args=(twitter, query), name='search_thread')
+                search_thread.start()
+                search_threads.append(search_thread)
             count = count + 1
             print(f"Gathering data from Twitter for {count} times")
             # get the number of min for the thread to wait

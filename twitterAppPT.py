@@ -22,6 +22,8 @@ class TwitterApp:
         self.use_database = use_database
         self.use_timeline = timeline
         self.use_followers = followers
+        if not self.use_timeline and not self.use_followers:
+            self.use_timeline = True
         self.api = twitter.Api(consumer_key=consumer_key,
                                consumer_secret=consumer_secret,
                                access_token_key=access_token,
