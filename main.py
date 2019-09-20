@@ -1,8 +1,29 @@
 import argparse
 import configparser
 from twitterAppPT import TwitterApp
+import threading
+from signal import signal, SIGINT
+import sys
+import time
 
 DEFAULT_CONFIG = 'config.ini'
+ctrl_c = False
+search_thread = None
+
+# used to always exit on a sleep so that no thread gets cut off
+def handel_ctrl_c(signal_received, frame):
+    global ctrl_c
+    global search_thread
+    ctrl_c = True
+    while search_thread is not None:
+        time.sleep(.5)
+        if not search_thread.is_alive():
+            search_thread = None
+    sys.exit(0)
+
+
+def search_thread_function(searcher, query):
+    searcher.search(query)
 
 
 def settings(args):
@@ -52,12 +73,18 @@ def settings(args):
     else:
         database_path = args.database
 
+    if args.quantum is None:
+        quantum = config['CONTINUE']['quantum']
+    else:
+        quantum = args.quantum
+
     return consumer_key, consumer_secret, access_token, access_token_secret, \
         text_followers_filename, text_timeline_filename, \
-        json_followers_filename, json_timeline_filename, database_path
+        json_followers_filename, json_timeline_filename, database_path, quantum
 
 
 def main():
+    signal(SIGINT, handel_ctrl_c)
     # Argument parser for simple settings changes
     parser = argparse.ArgumentParser()
     parser.add_argument('query', help='Search query')
@@ -96,19 +123,39 @@ def main():
                         help='get the followers of a given screen name')
     parser.add_argument('-utl', '--use_timeline', action='store_true',
                         help='get the timeline for a given screen name')
+
+    parser.add_argument('-gd', '--gather_data', action='store_true',
+                        help='Gather data from google results for every quantum of time')
+    parser.add_argument('-q', '--quantum', type=int,
+                        help='A quantum of time for gathering data')
     args = parser.parse_args()
 
     consumer_key, consumer_secret, access_token, access_token_secret, \
         text_followers_filename, text_timeline_filename, \
-        json_followers_filename, json_timeline_filename, database_path = settings(args)
+        json_followers_filename, json_timeline_filename, database_path, quantum = settings(args)
 
-    twitter_app = TwitterApp(consumer_key, consumer_secret, access_token, access_token_secret,
-                             text_followers_filename, text_timeline_filename,
-                             json_followers_filename, json_timeline_filename, database_path,
-                             args.use_text, args.use_json, args.use_database,
-                             args.use_timeline, args.use_followers)
+    twitter = TwitterApp(consumer_key, consumer_secret, access_token, access_token_secret,
+                         text_followers_filename, text_timeline_filename,
+                         json_followers_filename, json_timeline_filename, database_path,
+                         args.use_text, args.use_json, args.use_database,
+                         args.use_timeline, args.use_followers)
 
-    twitter_app.search(args.query)
+    count = 0
+
+    # Run the search
+    if args.gather_data:
+        while not ctrl_c:
+            global search_thread
+            search_thread = threading.Thread(target=search_thread_function,
+                                             args=(twitter, args.query), name='search_thread')
+            search_thread.start()
+            count = count + 1
+            print(f"Gathering data from Twitter for {count} times")
+            # get the number of min for the thread to wait
+            sleep_time = int(quantum) * 60
+            time.sleep(sleep_time)
+    else:
+        twitter.search(args.query)
 
 
 if __name__ == '__main__':
