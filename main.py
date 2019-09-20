@@ -135,8 +135,7 @@ def main():
                         Multi_query must be used with gather_data flag''')
 
     args = parser.parse_args()
-    print(args)
-
+    
     consumer_key, consumer_secret, access_token, access_token_secret, \
         text_followers_filename, text_timeline_filename, \
         json_followers_filename, json_timeline_filename, database_path, quantum = settings(args)
@@ -159,8 +158,6 @@ def main():
         q_list.append(args.query)
     else:
         q_list.append(args.query)
-
-    print(q_list)
 
     # Run the search
     if args.gather_data:
