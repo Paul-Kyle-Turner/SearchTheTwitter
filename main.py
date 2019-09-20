@@ -134,6 +134,11 @@ def main():
         text_followers_filename, text_timeline_filename, \
         json_followers_filename, json_timeline_filename, database_path, quantum = settings(args)
 
+    if args.gather_data is True:
+        args.use_database = True
+        args.use_text = False
+        args.use_json = False
+
     twitter = TwitterApp(consumer_key, consumer_secret, access_token, access_token_secret,
                          text_followers_filename, text_timeline_filename,
                          json_followers_filename, json_timeline_filename, database_path,
