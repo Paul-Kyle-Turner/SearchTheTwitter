@@ -20,6 +20,7 @@ def handel_ctrl_c(signal_received, frame):
         for search_thread in search_threads:
             if not search_thread.is_alive():
                 search_threads.remove(search_thread)
+        time.sleep(1)
     sys.exit(0)
 
 
@@ -135,7 +136,7 @@ def main():
                         Multi_query must be used with gather_data flag''')
 
     args = parser.parse_args()
-    
+
     consumer_key, consumer_secret, access_token, access_token_secret, \
         text_followers_filename, text_timeline_filename, \
         json_followers_filename, json_timeline_filename, database_path, quantum = settings(args)
@@ -164,8 +165,9 @@ def main():
         while not ctrl_c:
             global search_threads
             for query in q_list:
+                name = 'search thread ' + str(query)
                 search_thread = threading.Thread(target=search_thread_function,
-                                                 args=(twitter, query), name='search_thread')
+                                                 args=(twitter, query), name=name)
                 search_thread.start()
                 search_threads.append(search_thread)
             count = count + 1
@@ -174,7 +176,8 @@ def main():
             sleep_time = int(quantum) * 60
             time.sleep(sleep_time)
     else:
-        twitter.search(args.query)
+        for query in q_list:
+            twitter.search(query)
 
 
 if __name__ == '__main__':
